@@ -20,7 +20,7 @@ V1 = 10
 R1 = 3.5
 C1 = 100
 L1 = 100
-C1_ic = 0
+C1_ic = 200
 L1_ic = 0
 step_size = 1 #s
 total_time = 1000 #s
@@ -56,7 +56,9 @@ def forloop():
     voltage = np.array([])
     current = np.array([])
     int_current = np.array([])
+    dif_current = np.array([])
     control_times = np.array([])
+    current_at_control_time = np.array([])
     for i in range(1, number_of_steps):
         if i == 1:
             last_condition = C1_ic
@@ -65,8 +67,10 @@ def forloop():
             time = np.append(time, analysis.time)
             voltage = np.append(voltage, analysis['node3'])
             current = np.append(current, analysis['L1'])
+            current_at_control_time = np.append(current_at_control_time, current[-1])
             control_times = np.append(control_times, time[-1])
-            int_current = np.append(int_current, np.trapezoid(y = current, dx = step_size))
+            int_current = np.append(int_current, np.trapezoid(y = current_at_control_time, dx = step_size))
+            # dif_current = np.append(dif_current, np.gradient(current_at_control_time, step_size)[-1])
 
         else: 
             last_condition = analysis["node3"][-1]
@@ -75,11 +79,14 @@ def forloop():
             time = np.append(time, np.array(np.array(analysis.time)+time[-1]))
             voltage = np.append(voltage, np.array(analysis['node3']))
             current = np.append(current, np.array(analysis['L1']))
+            current_at_control_time = np.append(current_at_control_time, current[-1])
             control_times = np.append(control_times, time[-1])
-            int_current = np.append(int_current, np.trapezoid(y = current, dx = step_size))
-
+            int_current = np.append(int_current, np.trapezoid(y = current_at_control_time, dx = step_size))
+            dif_current = np.append(dif_current, np.gradient(current_at_control_time, step_size)[-1])
+            if i == 2:
+                dif_current = np.append(dif_current, np.gradient(current_at_control_time, step_size)[-1])
         # print(int_current)
-    return time, voltage, current, int_current, control_times
+    return time, voltage, current, int_current, control_times, dif_current
 
     
 def plotting(time, voltage, current):
@@ -97,8 +104,10 @@ def plotting(time, voltage, current):
     
 
 #plotting the integral of the  current
-def plotsum(control_times, int_current):
+def plotsum(control_times, int_current, dif_current, time, current):
     plt.plot(control_times, int_current, label="Integral of current")
+    # plt.plot(control_times, dif_current, label="Dif of current", linestyle='--')
+    # plt.plot(time, current, label="Current")
     plt.legend()
     plt.show()
     return
@@ -110,10 +119,10 @@ def main():
     setup_logging()
 
     
-    time, voltage, current, int_current, control_times = forloop()
+    time, voltage, current, int_current, control_times, dif_current = forloop()
     plotting(time, voltage, current)
-    plotsum(control_times, int_current)
+    plotsum(control_times, int_current, dif_current, time, current)
 
 if __name__ == '__main__':
-    main()
+    main()  
 
